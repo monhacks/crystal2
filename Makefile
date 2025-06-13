@@ -4,6 +4,17 @@ else
 SHA1 := sha1sum
 endif
 
+ifneq ($(wildcard rgbds/.*),)
+RGBDS := rgbds/
+else
+RGBDS :=
+endif
+
+RGBASM := $(RGBDS)rgbasm
+RGBGFX := $(RGBDS)rgbgfx
+RGBFIX := $(RGBDS)rgbfix
+RGBLINK := $(RGBDS)rgblink
+
 .SUFFIXES:
 .PHONY: all clean tools compare crystal
 .SECONDEXPANSION:
@@ -52,11 +63,11 @@ tools:
 
 %.o: dep = $(shell tools/scan_includes $(@D)/$*.asm)
 %.o: %.asm $$(dep)
-	rgbasm -o $@ $<
+	$(RGBASM) -o $@ $<
 
 pokecrystal2.gbc: $(crystal_obj) pokecrystal.ld
-	rgblink -n pokecrystal2.sym -m pokecrystal2.map -l pokecrystal.ld -o $@ $(crystal_obj)
-	rgbfix -Cjv -i BYTE -k 01 -l 0x33 -m 0x10 -p 0 -r 3 -t PM_CRYSTAL $@
+	$(RGBLINK) -n pokecrystal2.sym -m pokecrystal2.map -l pokecrystal.ld -o $@ $(crystal_obj)
+	$(RGBFIX) -Cjv -i BYTE -k 01 -l 0x33 -m 0x10 -p 0 -r 3 -t PM_CRYSTAL $@
 
 
 # For files that the compressor can't match, there will be a .lz file suffixed with the md5 hash of the correct uncompressed file.
@@ -91,11 +102,11 @@ gfx/pics/girafarig/front.animated.tilemap: gfx/pics/girafarig/front.2bpp gfx/pic
 # Pokemon pic graphics rules
 
 gfx/pics/%/normal.gbcpal: gfx/pics/%/front.png
-	rgbgfx -p $@ $<
+	$(RGBGFX) -p $@ $<
 gfx/pics/%/normal.pal: gfx/pics/%/normal.gbcpal
 	tools/palette -p $< > $@
 gfx/pics/%/back.2bpp: gfx/pics/%/back.png
-	rgbgfx -h -o $@ $<
+	$(RGBGFX) -h -o $@ $<
 gfx/pics/%/bitmask.asm: gfx/pics/%/front.animated.tilemap gfx/pics/%/front.dimensions
 	tools/pokemon_animation -b $^ > $@
 gfx/pics/%/frames.asm: gfx/pics/%/front.animated.tilemap gfx/pics/%/front.dimensions
@@ -106,7 +117,7 @@ gfx/pics/%/front.animated.tilemap: gfx/pics/%/front.2bpp gfx/pics/%/front.dimens
 	tools/pokemon_animation_graphics -t $@ $^
 # Don't use -h, pokemon_animation_graphics takes care of it
 #gfx/pics/%/front.2bpp: gfx/pics/%/front.png
-#	rgbgfx -o $@ $<
+#	rgbds/rgbgfx -o $@ $<
 
 
 # Misc file-specific graphics rules
@@ -180,17 +191,17 @@ gfx/unknown/172f1f.2bpp: tools/gfx += --trim-whitespace
 %.blk: ;
 
 %.2bpp: %.png
-	rgbgfx $(rgbgfx) -o $@ $<
+	$(RGBGFX) $(rgbgfx) -o $@ $<
 	$(if $(tools/gfx),tools/gfx $(tools/gfx) -o $@ $@)
 
 %.1bpp: %.png
-	rgbgfx $(rgbgfx) -d1 -o $@ $<
+	$(RGBGFX) $(rgbgfx) -d1 -o $@ $<
 	$(if $(tools/gfx),tools/gfx $(tools/gfx) -d1 -o $@ $@)
 
 %.tilemap: %.png
-	rgbgfx -t $@ $<
+	$(RGBGFX) -t $@ $<
 %.gbcpal: %.png
-	rgbgfx -p $@ $<
+	$(RGBGFX) -p $@ $<
 %.pal: %.gbcpal
 	tools/palette $< > $@
 %.dimensions: %.png
